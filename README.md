@@ -75,6 +75,19 @@ refuses it.
 - Linux (x64 or arm64) or macOS (arm64) runners. Windows is not supported.
 - The repository is connected to Trunk: the Trunk GitHub App is installed on it.
 
+## Releasing (maintainers)
+
+Only repository admins can create, move or delete `v*` tags: whoever can move `v1` runs code in
+every workflow that uses it. To release:
+
+1. Bump the `cli-version` default in `action.yaml` if a newer `trunk` CLI should ship, and merge.
+2. Tag the merged commit with an exact version, then move the major tag to it:
+
+   ```sh
+   git tag v1.0.1 <commit> && git push origin v1.0.1
+   git tag -f v1 v1.0.1 && git push --force origin v1
+   ```
+
 ## License
 
 [MIT](LICENSE)
