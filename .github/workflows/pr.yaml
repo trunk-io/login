@@ -55,11 +55,10 @@ jobs:
         with:
           persist-credentials: false
 
+      # The CLI version and channel are the action's defaults, so this tests what users install.
       - uses: ./
         with:
           api-url: https://api.trunk-staging.io/v2
-          cli-version: 0.0.6
-          cli-channel: staging
 
       - run: trunk auth status
 
