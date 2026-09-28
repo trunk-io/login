@@ -1,0 +1,86 @@
+name: Pull request
+
+on:
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Pinned by version; the Go checksum database verifies the module.
+      - name: actionlint
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+
+      # An input interpolated into a script can inject shell into every caller's job.
+      - name: No input is interpolated into a script
+        # Built from pieces: GitHub reads a literal dollar-brace-brace anywhere in a workflow as an
+        # expression, even inside a shell string.
+        run: |
+          pattern='$''{''{'
+          # Captured first, so a yq failure fails the step instead of passing an empty grep.
+          scripts=$(yq '.runs.steps[].run // ""' action.yaml)
+          if printf '%s\n' "${scripts}" | grep -F "${pattern}"; then
+            echo "::error file=action.yaml::pass inputs to run scripts through env, not an expression"
+            exit 1
+          fi
+
+  e2e:
+    name: Log in and upload (${{ matrix.runner }})
+    # A pull request from a fork gets no OIDC token, and this repository is not opted in to the
+    # fork lane.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./
+        with:
+          api-url: https://api.trunk-staging.io/v2
+          cli-version: 0.0.6
+          cli-channel: staging
+
+      - run: trunk auth status
+
+      - run: trunk mergequeue upload-impacted-targets --none --json
+
+  windows:
+    name: Refuses Windows
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - id: login
+        uses: ./
+        continue-on-error: true
+
+      - if: steps.login.outcome != 'failure'
+        shell: bash
+        run: |
+          echo "::error::the action should fail on Windows"
+          exit 1
