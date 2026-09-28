@@ -1,0 +1,57 @@
+name: Trunk Login
+author: trunk.io
+description: >-
+  Log a GitHub Actions job in to Trunk with the run's own GitHub credential: no Trunk secret,
+  pull requests from forks included.
+branding:
+  icon: log-in
+  color: green
+
+inputs:
+  api-url:
+    description: The Trunk API root. Use https://api.trunk-staging.io/v2 for Trunk's staging environment.
+    required: false
+    default: https://api.trunk.io/v2
+  cli-version:
+    description: The trunk CLI version to install. Pinned per release of this action.
+    required: false
+    default: 0.0.7
+  cli-channel:
+    description: The trunk CLI release channel that cli-version is published on.
+    required: false
+    default: prod
+  github-token:
+    description: >-
+      The job's GitHub token. The CLI sends it to Trunk only on a pull request from a fork, where
+      the run has no OIDC token.
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check the runner
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        echo "::error::trunk-io/login supports Linux (x64, arm64) and macOS (arm64) runners."
+        exit 1
+
+    # Inputs reach the scripts through env, never interpolated into them.
+    - name: Install trunk
+      shell: bash
+      env:
+        CLI_VERSION: ${{ inputs.cli-version }}
+        CLI_CHANNEL: ${{ inputs.cli-channel }}
+      run: |
+        install_dir="${RUNNER_TEMP}/trunk-login-bin"
+        curl -fsSL https://install.trunk.io |
+          sh -s -- --version "${CLI_VERSION}" --channel "${CLI_CHANNEL}" --install-dir "${install_dir}"
+        echo "${install_dir}" >> "${GITHUB_PATH}"
+
+    - name: Log in to Trunk
+      shell: bash
+      env:
+        TRUNK_API_URL: ${{ inputs.api-url }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: '"${RUNNER_TEMP}/trunk-login-bin/trunk" auth login --github-actions'
