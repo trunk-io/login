@@ -41,7 +41,7 @@ refuses it.
 | Run                                                            | Credential                                    | Needs                                                                                   |
 | -------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------- |
 | `pull_request` from this repository, `merge_group`, `push`, `workflow_dispatch` | The run's GitHub OIDC token                   | `permissions: id-token: write`                                                           |
-| `pull_request` from a fork (and `pull_request_target`)          | The job's `GITHUB_TOKEN`, bound to that PR and its head commit | An organization admin turns on **Fork PR CI access** for the repository in Trunk (Settings → Repositories) |
+| `pull_request` from a fork (and `pull_request_target`)          | The job's `GITHUB_TOKEN`, bound to that PR and its head commit | An organization admin turns on **Impacted targets from fork PRs** for the repository in Trunk (**Merge Queue** → any of the repository's queues → **Settings** → **GitHub**) |
 
 - The CLI picks the credential. It sends the `GITHUB_TOKEN` only on a pull request from a fork.
 - A fork PR's login is bound to that pull request and its head commit, so it can upload only for
