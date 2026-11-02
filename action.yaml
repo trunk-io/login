@@ -15,7 +15,7 @@ inputs:
   cli-version:
     description: The trunk CLI version to install. Pinned per release of this action.
     required: false
-    default: 0.0.7
+    default: 0.0.13
   cli-channel:
     description: The trunk CLI release channel that cli-version is published on.
     required: false
